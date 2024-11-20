@@ -21,8 +21,6 @@ namespace TaskManager.Controllers
     [HttpPost]
     public async Task<IActionResult> CreateTask([FromBody] Models.Task task)
     {
-      throw new Exception("Erro simulado para testar o middleware!");
-
       if (!_context.Users.Any(u => u.Id == task.UserId))
       {
         return BadRequest("Usuário inválido.");
@@ -74,5 +72,43 @@ namespace TaskManager.Controllers
       await _context.SaveChangesAsync();
       return NoContent();
     }
+
+    [HttpGet]
+    public async Task<IActionResult> GetTasks([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] bool? isCompleted = null)
+    {
+      // Valida os parâmetros de paginação
+      if (page <= 0 || pageSize <= 0)
+      {
+        return BadRequest("Page and PageSize must be greater than 0.");
+      }
+
+      // Consulta inicial
+      var query = _context.Tasks.AsQueryable();
+
+      // Filtro por status (isCompleted)
+      if (isCompleted.HasValue)
+      {
+        query = query.Where(t => t.IsCompleted == isCompleted.Value);
+      }
+
+      // Total de itens antes da paginação
+      var totalItems = await query.CountAsync();
+
+      // Aplica paginação
+      var tasks = await query
+          .Skip((page - 1) * pageSize) // Pula itens baseados na página
+          .Take(pageSize) // Limita ao tamanho da página
+          .ToListAsync();
+
+      // Retorna a resposta formatada
+      return Ok(new
+      {
+        totalItems,
+        page,
+        pageSize,
+        items = tasks
+      });
+    }
+
   }
 }
