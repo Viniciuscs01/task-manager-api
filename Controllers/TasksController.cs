@@ -21,6 +21,8 @@ namespace TaskManager.Controllers
     [HttpPost]
     public async Task<IActionResult> CreateTask([FromBody] Models.Task task)
     {
+      throw new Exception("Erro simulado para testar o middleware!");
+
       if (!_context.Users.Any(u => u.Id == task.UserId))
       {
         return BadRequest("Usuário inválido.");

@@ -27,18 +27,15 @@ namespace TaskManager.Controllers
     [AllowAnonymous]
     public async Task<IActionResult> Register([FromBody] User user)
     {
-      // Verificar se o usuário já existe
       var existingUser = _context.Users.FirstOrDefault(u => u.Username == user.Username || u.Email == user.Email);
       if (existingUser != null)
       {
         return BadRequest("Username ou e-mail já está em uso.");
       }
 
-      // Hash da senha usando PasswordHasher
       var passwordHasher = new PasswordHasher<User>();
-      user.PasswordHash = passwordHasher.HashPassword(user, user.PasswordHash); // Substitua 'PasswordHash' pelo campo adequado se for necessário
+      user.PasswordHash = passwordHasher.HashPassword(user, user.PasswordHash);
 
-      // Salvar o novo usuário no banco de dados
       _context.Users.Add(user);
       await _context.SaveChangesAsync();
 
@@ -54,11 +51,9 @@ namespace TaskManager.Controllers
         return Unauthorized("Usuário ou senha inválidos.");
       }
 
-      // Recupera a chave secreta do Configuration
       var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(_configuration["JWT_SECRET"]));
       var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-      // Criação do token com as claims (informações do usuário)
       var claims = new[]
       {
         new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),

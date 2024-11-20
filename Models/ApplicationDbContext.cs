@@ -14,12 +14,11 @@ namespace TaskManager.Models
     {
       base.OnModelCreating(modelBuilder);
 
-      // Configuração para tornar a propriedade User opcional
       modelBuilder.Entity<Task>()
           .HasOne(t => t.User)
           .WithMany(u => u.Tasks)
           .HasForeignKey(t => t.UserId)
-          .IsRequired(false); // Especifica que User não é obrigatório
+          .IsRequired(false);
     }
 
   }
