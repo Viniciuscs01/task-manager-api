@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using TaskManager.Middlewares;
 using TaskManager.Models;
+using TaskManager.Services;
 
 public partial class Program
 {
@@ -102,6 +103,7 @@ public partial class Program
     builder.Host.UseSerilog();
 
     builder.Services.AddControllers();
+    builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 
     var app = builder.Build();
 
@@ -113,6 +115,7 @@ public partial class Program
 
     app.UseHttpsRedirection();
 
+    app.UseMiddleware<AuditLoggingMiddleware>();
     app.UseMiddleware<ErrorHandlingMiddleware>();
 
     var localizationOptions = app.Services.GetService<IOptions<RequestLocalizationOptions>>().Value;

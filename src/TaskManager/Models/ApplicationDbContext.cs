@@ -9,6 +9,8 @@ namespace TaskManager.Models
 
     public DbSet<User> Users { get; set; }
     public DbSet<Task> Tasks { get; set; }
+    public DbSet<AuditLog> AuditLogs { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
