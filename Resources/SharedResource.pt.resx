@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <data name="TaskNotFound" xml:space="preserve">
+    <value>Tarefa não encontrada.</value>
+  </data>
+  <data name="ValidationError" xml:space="preserve">
+    <value>Ocorreu um erro de validação.</value>
+  </data>
+</root>

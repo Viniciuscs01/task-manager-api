@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using TaskManager.Models;
 
 namespace TaskManager.Controllers
@@ -12,11 +13,13 @@ namespace TaskManager.Controllers
   {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<TasksController> _logger;
+    private readonly IStringLocalizer<SharedResource> _localizer;
 
-    public TasksController(ApplicationDbContext context, ILogger<TasksController> logger)
+    public TasksController(ApplicationDbContext context, ILogger<TasksController> logger, IStringLocalizer<SharedResource> localizer)
     {
       _context = context;
       _logger = logger;
+      _localizer = localizer;
     }
 
     [HttpPost]
@@ -31,9 +34,9 @@ namespace TaskManager.Controllers
 
       _context.Tasks.Add(task);
       await _context.SaveChangesAsync();
-      
+
       _logger.LogInformation("Task created successfully with ID: {Id}", task.Id);
-      
+
       return CreatedAtAction(nameof(GetTaskById), new { id = task.Id }, task);
     }
 
@@ -45,8 +48,9 @@ namespace TaskManager.Controllers
       var task = await _context.Tasks.FindAsync(id);
       if (task == null)
       {
-        _logger.LogWarning("Task with ID {Id} not found", id);
-        return NotFound();
+        var message = _localizer["TaskNotFound"].Value;
+        _logger.LogWarning(message);
+        return NotFound(new { error = message });
       }
 
       _logger.LogInformation("Task with ID {Id} fetched successfully", id);

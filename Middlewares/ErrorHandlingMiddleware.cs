@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using Microsoft.Extensions.Localization;
 
 namespace TaskManager.Middlewares
 {
@@ -8,12 +9,14 @@ namespace TaskManager.Middlewares
     private readonly RequestDelegate _next;
     private readonly IHostEnvironment _env;
     private readonly ILogger<ErrorHandlingMiddleware> _logger;
+    private readonly IStringLocalizer<SharedResource> _localizer;
 
-    public ErrorHandlingMiddleware(RequestDelegate next, IHostEnvironment env, ILogger<ErrorHandlingMiddleware> logger)
+    public ErrorHandlingMiddleware(RequestDelegate next, IHostEnvironment env, ILogger<ErrorHandlingMiddleware> logger, IStringLocalizer<SharedResource> localizer)
     {
       _next = next;
       _env = env;
       _logger = logger;
+      _localizer = localizer;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -24,8 +27,21 @@ namespace TaskManager.Middlewares
       }
       catch (Exception ex)
       {
-        _logger.LogError(ex, "An unhandled exception occurred: {Message}", ex.Message);
-        await HandleExceptionAsync(context, ex);
+        var statusCode = HttpStatusCode.InternalServerError;
+        var localizedMessage = _localizer["ValidationError"].Value;
+        
+        _logger.LogError(ex, localizedMessage, ex.Message);
+
+        var response = new
+        {
+          error = localizedMessage,
+          statusCode = (int)statusCode
+        };
+
+        context.Response.ContentType = "application/json";
+        context.Response.StatusCode = (int)statusCode;
+
+        await context.Response.WriteAsync(JsonSerializer.Serialize(response));
       }
     }
 
