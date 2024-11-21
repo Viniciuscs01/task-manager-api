@@ -40,7 +40,16 @@ namespace TaskManager.Controllers
       return CreatedAtAction(nameof(GetTaskById), new { id = task.Id }, task);
     }
 
+    /// <summary>
+    /// Retrieve a specific task by ID.
+    /// </summary>
+    /// <param name="id">ID of the task.</param>
+    /// <returns>Task details or not found response.</returns>
+    /// <response code="200">Returns the task details.</response>
+    /// <response code="404">Task not found.</response>
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(Models.Task), 200)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> GetTaskById(int id)
     {
       _logger.LogInformation("Fetching task with ID: {Id}", id);
