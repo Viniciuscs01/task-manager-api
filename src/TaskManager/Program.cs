@@ -7,72 +7,76 @@ using Serilog;
 using TaskManager.Middlewares;
 using TaskManager.Models;
 
-var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration["ConnectionStrings:DefaultConnection"]));
-
-builder.Configuration.AddUserSecrets<Program>();
-
-var secretKey = builder.Configuration["JWT_SECRET"];
-var key = Encoding.ASCII.GetBytes(secretKey);
-
-builder.Services.AddAuthentication(options =>
+public partial class Program
 {
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
+    public static void Main(string[] args)
     {
-        ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(key),
-        ValidateIssuer = false,
-        ValidateAudience = false
-    };
-});
+        var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
+        // Add services to the container.
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddSwaggerGen();
 
-builder.Services.Configure<RequestLocalizationOptions>(options =>
-{
-    var supportedCultures = new[] { "en", "pt" }; // Idiomas suportados: Inglês e Português
-    options.SetDefaultCulture("en");
-    options.AddSupportedCultures(supportedCultures);
-    options.AddSupportedUICultures(supportedCultures);
-});
+        builder.Services.AddDbContext<ApplicationDbContext>(options =>
+            options.UseSqlServer(builder.Configuration["ConnectionStrings:DefaultConnection"]));
 
+        builder.Configuration.AddUserSecrets<Program>();
 
-Log.Logger = new LoggerConfiguration()
-    .WriteTo.Console()
-    .WriteTo.File("logs/log-.txt", rollingInterval: RollingInterval.Day)
-    .CreateLogger();
+        var secretKey = builder.Configuration["JWT_SECRET"];
+        var key = Encoding.ASCII.GetBytes(secretKey);
 
-builder.Host.UseSerilog();
+        builder.Services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ValidateIssuer = false,
+                ValidateAudience = false
+            };
+        });
 
-builder.Services.AddControllers();
+        builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 
-var app = builder.Build();
+        builder.Services.Configure<RequestLocalizationOptions>(options =>
+        {
+            var supportedCultures = new[] { "en", "pt" };
+            options.SetDefaultCulture("en");
+            options.AddSupportedCultures(supportedCultures);
+            options.AddSupportedUICultures(supportedCultures);
+        });
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
+        Log.Logger = new LoggerConfiguration()
+            .WriteTo.Console()
+            .WriteTo.File("logs/log-.txt", rollingInterval: RollingInterval.Day)
+            .CreateLogger();
+
+        builder.Host.UseSerilog();
+
+        builder.Services.AddControllers();
+
+        var app = builder.Build();
+
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseSwagger();
+            app.UseSwaggerUI();
+        }
+
+        app.UseHttpsRedirection();
+
+        app.UseMiddleware<ErrorHandlingMiddleware>();
+
+        var localizationOptions = app.Services.GetService<IOptions<RequestLocalizationOptions>>().Value;
+        app.UseRequestLocalization(localizationOptions);
+
+        app.MapControllers();
+
+        app.Run();
+    }
 }
-
-app.UseHttpsRedirection();
-
-app.UseMiddleware<ErrorHandlingMiddleware>();
-
-var localizationOptions = app.Services.GetService<IOptions<RequestLocalizationOptions>>().Value;
-app.UseRequestLocalization(localizationOptions);
-
-app.MapControllers();
-
-app.Run();
