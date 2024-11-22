@@ -23,30 +23,38 @@ public class AuditLoggingMiddleware(RequestDelegate next, IConfiguration configu
 
     var username = context.User.Identity?.Name ?? "Anonymous";
     var action = $"{context.Request.Method} {context.Request.Path}";
+
+    var queryParameters = context.Request.Query.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToString());
+
     var details = new
     {
       context.Request.Headers,
-      context.Request.Query
+      QueryParameters = queryParameters
     };
 
-    await _next(context);
-
-    var responseDetails = new
+    try
     {
-      context.Response.StatusCode
-    };
-
-    var combinedDetails = new
+      await _next(context);
+    }
+    finally
     {
-      Request = details,
-      Response = responseDetails
-    };
+      var responseDetails = new
+      {
+        context.Response.StatusCode
+      };
 
-    var formattedDetails = JsonSerializer.Serialize(combinedDetails, new JsonSerializerOptions
-    {
-      WriteIndented = true
-    });
+      var combinedDetails = new
+      {
+        Request = details,
+        Response = responseDetails
+      };
 
-    await auditLogService.LogAsync(action, username, formattedDetails);
+      var formattedDetails = JsonSerializer.Serialize(combinedDetails, new JsonSerializerOptions
+      {
+        WriteIndented = true
+      });
+
+      await auditLogService.LogAsync(action, username, formattedDetails);
+    }
   }
 }
