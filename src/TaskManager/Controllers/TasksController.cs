@@ -93,23 +93,40 @@ namespace TaskManager.Controllers
       return NoContent();
     }
 
+    /// <summary>
+    /// Retrieve tasks with optional filters and pagination.
+    /// </summary>
+    /// <param name="search">Search text in the title or description.</param>
+    /// <param name="isCompleted">Filter by task status (completed or pending).</param>
+    /// <param name="startDate">Start date for creation date filter.</param>
+    /// <param name="endDate">End date for creation date filter.</param>
+    /// <param name="page">Page number for pagination.</param>
+    /// <param name="pageSize">Number of items per page.</param>
+    /// <returns>Filtered and paginated list of tasks.</returns>
     [HttpGet]
-    public async Task<IActionResult> GetTasks([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] bool? isCompleted = null)
+    public async Task<IActionResult> GetTasks(
+        string? search,
+        bool? isCompleted,
+        DateTime? startDate,
+        DateTime? endDate,
+        int page = 1,
+        int pageSize = 10)
     {
-      if (page <= 0 || pageSize <= 0)
-      {
-        return BadRequest("Page and PageSize must be greater than 0.");
-      }
-
       var query = _context.Tasks.AsQueryable();
 
+      if (!string.IsNullOrEmpty(search))
+        query = query.Where(t => t.Title.Contains(search) || t.Description.Contains(search));
+
       if (isCompleted.HasValue)
-      {
         query = query.Where(t => t.IsCompleted == isCompleted.Value);
-      }
+
+      if (startDate.HasValue)
+        query = query.Where(t => t.CreatedAt >= startDate.Value);
+
+      if (endDate.HasValue)
+        query = query.Where(t => t.CreatedAt <= endDate.Value);
 
       var totalItems = await query.CountAsync();
-
       var tasks = await query
           .Skip((page - 1) * pageSize)
           .Take(pageSize)
@@ -117,12 +134,26 @@ namespace TaskManager.Controllers
 
       return Ok(new
       {
-        totalItems,
-        page,
-        pageSize,
-        items = tasks
+        TotalItems = totalItems,
+        Page = page,
+        PageSize = pageSize,
+        Items = tasks
       });
     }
 
+    [HttpPut("{id}/complete")]
+    public async Task<IActionResult> CompleteTask(int id)
+    {
+      var task = await _context.Tasks.FindAsync(id);
+      if (task == null)
+        return NotFound();
+
+      task.IsCompleted = true;
+      task.CompletedAt = DateTime.UtcNow;
+
+      await _context.SaveChangesAsync();
+
+      return Ok(task);
+    }
   }
 }

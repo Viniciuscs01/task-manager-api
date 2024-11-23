@@ -2,17 +2,25 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
+using Microsoft.AspNetCore.Mvc.Formatters.Xml;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using TaskManager.Helpers;
+using TaskManager.Models;
+using TaskManager.Tests.Controllers;
 
-public class TasksControllerTests : IClassFixture<WebApplicationFactory<Program>>
+public class TasksControllerTests : IClassFixture<CustomWebApplicationFactory<Program>>
 {
   private readonly HttpClient _client;
   private readonly string _jwtSecret;
+  private readonly ApplicationDbContext _context;
+  private readonly CustomWebApplicationFactory<Program> _factory;
 
-  public TasksControllerTests(WebApplicationFactory<Program> factory)
+  public TasksControllerTests(CustomWebApplicationFactory<Program> factory)
   {
+    _factory = factory;
     _client = factory.CreateClient();
 
     var config = new ConfigurationBuilder()
@@ -25,10 +33,16 @@ public class TasksControllerTests : IClassFixture<WebApplicationFactory<Program>
     _client.DefaultRequestHeaders.Authorization =
         new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
     _client.DefaultRequestHeaders.Add("Accept-Language", "en");
+
+    var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseInMemoryDatabase(databaseName: "TaskManagerTestDb")
+                .Options;
+
+    _context = new ApplicationDbContext(options);
   }
 
   [Fact]
-  public async Task GetTaskById_ReturnsNotFound_WhenTaskDoesNotExist()
+  public async System.Threading.Tasks.Task GetTaskById_ReturnsNotFound_WhenTaskDoesNotExist()
   {
     // Arrange
     var nonExistentId = 999;
@@ -46,15 +60,23 @@ public class TasksControllerTests : IClassFixture<WebApplicationFactory<Program>
   }
 
   [Fact]
-  public async Task CreateTask_ReturnsCreatedTask()
+  public async System.Threading.Tasks.Task CreateTask_ReturnsCreatedTask()
   {
     // Arrange
-    var newTask = new TaskManager.Models.Task
+    using var scope = _factory.Services.CreateScope();
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+    // Adicionar um usuário válido ao banco de dados
+    var validUser = new User { Id = 1, Username = "Test User", Email = "test@example.com", PasswordHash = "hashed_password" };
+    context.Users.Add(validUser);
+    await context.SaveChangesAsync();
+
+    var newTask = new
     {
       Title = "Test Task",
       Description = "Test Description",
       IsCompleted = false,
-      UserId = 1
+      UserId = validUser.Id // Associar ao usuário válido
     };
 
     // Act
@@ -66,10 +88,12 @@ public class TasksControllerTests : IClassFixture<WebApplicationFactory<Program>
     var createdTask = await response.Content.ReadFromJsonAsync<TaskManager.Models.Task>();
     createdTask.Should().NotBeNull();
     createdTask.Title.Should().Be("Test Task");
+    createdTask.UserId.Should().Be(validUser.Id);
   }
 
+
   [Fact]
-  public async Task GetTasks_WithPagination_ReturnsCorrectPage()
+  public async System.Threading.Tasks.Task GetTasks_WithPagination_ReturnsCorrectPage()
   {
     // Arrange
     var page = 1;
@@ -85,7 +109,7 @@ public class TasksControllerTests : IClassFixture<WebApplicationFactory<Program>
 
     var actualPage = content.GetProperty("page").GetInt32();
     var actualPageSize = content.GetProperty("pageSize").GetInt32();
-    var totalItems = content.GetProperty("totalItems").GetInt32();
+    _ = content.GetProperty("totalItems").GetInt32();
     var items = content.GetProperty("items");
 
     actualPage.Should().Be(page);
@@ -94,4 +118,52 @@ public class TasksControllerTests : IClassFixture<WebApplicationFactory<Program>
     items.GetArrayLength().Should().BeLessThanOrEqualTo(pageSize);
   }
 
+  [Fact]
+  public async System.Threading.Tasks.Task GetTasks_ShouldFilterByStatus()
+  {
+    // Arrange
+    // Arrange
+    using var scope = _factory.Services.CreateScope();
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+    var completedTask = new TaskManager.Models.Task { Title = "Completed Task", Description = "Completed Task", IsCompleted = true };
+    var pendingTask = new TaskManager.Models.Task { Title = "Pending Task", Description = "Pending Task", IsCompleted = false };
+
+    context.Tasks.AddRange(completedTask, pendingTask);
+    await context.SaveChangesAsync();
+
+    // Act
+    var response = await _client.GetAsync("/api/tasks?isCompleted=true");
+    var wrapper = await response.Content.ReadFromJsonAsync<ResponseWrapper<TaskManager.Models.Task>>();
+
+    // Assert
+    wrapper.Should().NotBeNull();
+    wrapper.Items.Should().HaveCount(1);
+    wrapper.Items.First().Title.Should().Be("Completed Task");
+  }
+
+  [Fact]
+  public async System.Threading.Tasks.Task GetTasks_ShouldFilterByDateRange()
+  {
+    // Arrange
+    using var scope = _factory.Services.CreateScope();
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+    context.Tasks.AddRange(
+        new TaskManager.Models.Task { Title = "Task 1", Description = "Task 1", CreatedAt = new DateTime(2024, 11, 01) },
+        new TaskManager.Models.Task { Title = "Task 2", Description = "Task 2", CreatedAt = new DateTime(2024, 11, 10) },
+        new TaskManager.Models.Task { Title = "Task 3", Description = "Task 3", CreatedAt = new DateTime(2024, 11, 20) }
+    );
+
+    await context.SaveChangesAsync();
+
+    // Act
+    var response = await _client.GetAsync("/api/tasks?startDate=2024-11-01&endDate=2024-11-15");
+    var wrapper = await response.Content.ReadFromJsonAsync<ResponseWrapper<TaskManager.Models.Task>>();
+
+    // Assert
+    wrapper.Should().NotBeNull();
+    wrapper.Items.Should().HaveCount(2);
+    wrapper.Items.Select(t => t.Title).Should().Contain(new[] { "Task 1", "Task 2" });
+  }
 }
