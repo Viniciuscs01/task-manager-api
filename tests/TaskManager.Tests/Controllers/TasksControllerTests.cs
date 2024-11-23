@@ -166,4 +166,80 @@ public class TasksControllerTests : IClassFixture<CustomWebApplicationFactory<Pr
     wrapper.Items.Should().HaveCount(2);
     wrapper.Items.Select(t => t.Title).Should().Contain(new[] { "Task 1", "Task 2" });
   }
+
+  [Fact]
+  public async System.Threading.Tasks.Task UpdateTask_ShouldReturnUpdatedTask()
+  {
+    // Arrange
+    using var scope = _factory.Services.CreateScope();
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+    var existingTask = new TaskManager.Models.Task
+    {
+      Title = "Old Task",
+      Description = "Old Description",
+      IsCompleted = false,
+      UserId = 1
+    };
+
+    context.Tasks.Add(existingTask);
+    await context.SaveChangesAsync();
+
+    var updatedTask = new
+    {
+      existingTask.Id,
+      Title = "Updated Task",
+      Description = "Updated Description",
+      IsCompleted = true
+    };
+
+    // Act
+    var response = await _client.PutAsJsonAsync($"/api/tasks/{existingTask.Id}", updatedTask);
+    var result = await response.Content.ReadFromJsonAsync<TaskManager.Models.Task>();
+
+    // Assert
+    response.StatusCode.Should().Be(HttpStatusCode.OK);
+    result.Should().NotBeNull();
+    result.Title.Should().Be("Updated Task");
+    result.Description.Should().Be("Updated Description");
+    result.IsCompleted.Should().BeTrue();
+  }
+  [Fact]
+  public async System.Threading.Tasks.Task UpdateTask_ShouldReturnNotFound_WhenTaskDoesNotExist()
+  {
+    // Arrange
+    var updatedTask = new
+    {
+      Id = 999,
+      Title = "Updated Task",
+      Description = "Updated Description",
+      IsCompleted = true
+    };
+
+    // Act
+    var response = await _client.PutAsJsonAsync("/api/tasks/999", updatedTask);
+
+    // Assert
+    response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+  }
+
+  [Fact]
+  public async System.Threading.Tasks.Task UpdateTask_ShouldReturnBadRequest_WhenIdMismatch()
+  {
+    // Arrange
+    var updatedTask = new
+    {
+      Id = 1,
+      Title = "Updated Task",
+      Description = "Updated Description",
+      IsCompleted = true
+    };
+
+    // Act
+    var response = await _client.PutAsJsonAsync("/api/tasks/2", updatedTask);
+
+    // Assert
+    response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+  }
+
 }
