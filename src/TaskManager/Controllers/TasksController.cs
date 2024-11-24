@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Localization;
 using TaskManager.Models;
 
@@ -66,33 +67,6 @@ namespace TaskManager.Controllers
       return Ok(task);
     }
 
-    [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateTask(int id, Models.Task task)
-    {
-      if (id != task.Id)
-      {
-        return BadRequest();
-      }
-
-      _context.Entry(task).State = EntityState.Modified;
-      await _context.SaveChangesAsync();
-      return NoContent();
-    }
-
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteTask(int id)
-    {
-      var task = await _context.Tasks.FindAsync(id);
-      if (task == null)
-      {
-        return NotFound();
-      }
-
-      _context.Tasks.Remove(task);
-      await _context.SaveChangesAsync();
-      return NoContent();
-    }
-
     /// <summary>
     /// Retrieve tasks with optional filters and pagination.
     /// </summary>
@@ -154,6 +128,55 @@ namespace TaskManager.Controllers
       await _context.SaveChangesAsync();
 
       return Ok(task);
+    }
+
+    /// <summary>
+    /// Update an existing task.
+    /// </summary>
+    /// <param name="id">ID of the task to update.</param>
+    /// <param name="updatedTask">Updated task details.</param>
+    /// <returns>The updated task.</returns>
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateTask(int id, [FromBody] Models.Task updatedTask)
+    {
+      if (id != updatedTask.Id)
+      {
+        return BadRequest("ID mismatch.");
+      }
+
+      var existingTask = await _context.Tasks.FindAsync(id);
+      if (existingTask == null)
+      {
+        return NotFound(new { error = "Task not found." });
+      }
+
+      existingTask.Title = updatedTask.Title;
+      existingTask.Description = updatedTask.Description;
+      existingTask.IsCompleted = updatedTask.IsCompleted;
+
+      await _context.SaveChangesAsync();
+
+      return Ok(existingTask);
+    }
+
+    /// <summary>
+    /// Delete a task by ID.
+    /// </summary>
+    /// <param name="id">ID of the task to delete.</param>
+    /// <returns>No content if the task is deleted successfully.</returns>
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteTask(int id)
+    {
+      var task = await _context.Tasks.FindAsync(id);
+      if (task == null)
+      {
+        return NotFound(new { error = "Task not found." });
+      }
+
+      _context.Tasks.Remove(task);
+      await _context.SaveChangesAsync();
+
+      return NoContent();
     }
   }
 }

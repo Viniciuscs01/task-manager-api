@@ -242,4 +242,43 @@ public class TasksControllerTests : IClassFixture<CustomWebApplicationFactory<Pr
     response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
   }
 
+  [Fact]
+  public async System.Threading.Tasks.Task DeleteTask_ShouldReturnNoContent_WhenTaskIsDeleted()
+  {
+    // Arrange
+    using var scope = _factory.Services.CreateScope();
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+    var task = new TaskManager.Models.Task
+    {
+      Title = "Test Task",
+      Description = "Test Description",
+      IsCompleted = false,
+      UserId = 1
+    };
+
+    context.Tasks.Add(task);
+    await context.SaveChangesAsync();
+
+    // Act
+    var response = await _client.DeleteAsync($"/api/tasks/{task.Id}");
+
+    // Assert
+    response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+    context.Entry(task).State = EntityState.Detached;
+
+    var deletedTask = await context.Tasks.FindAsync(task.Id);
+    deletedTask.Should().BeNull();
+  }
+
+  [Fact]
+  public async System.Threading.Tasks.Task DeleteTask_ShouldReturnNotFound_WhenTaskDoesNotExist()
+  {
+    // Act
+    var response = await _client.DeleteAsync("/api/tasks/999");
+
+    // Assert
+    response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+  }
 }
