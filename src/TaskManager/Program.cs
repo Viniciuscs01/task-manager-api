@@ -1,5 +1,7 @@
 using System.Text;
 using AspNetCoreRateLimit;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -8,6 +10,7 @@ using Serilog;
 using TaskManager.Middlewares;
 using TaskManager.Models;
 using TaskManager.Services;
+using TaskManager.Validators;
 
 public partial class Program
 {
@@ -93,6 +96,8 @@ public partial class Program
 
     builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 
+    builder.Services.AddResponseCaching();
+
     builder.Services.Configure<RequestLocalizationOptions>(options =>
     {
       var supportedCultures = new[] { "en", "pt" };
@@ -108,8 +113,16 @@ public partial class Program
 
     builder.Host.UseSerilog();
 
+    builder.Services.AddApplicationInsightsTelemetry(options =>
+    {
+      options.ConnectionString = builder.Configuration["ApplicationInsights:ConnectionString"];
+    });
+
     builder.Services.AddControllers();
     builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+    builder.Services.AddFluentValidationAutoValidation()
+    .AddFluentValidationClientsideAdapters();
+    builder.Services.AddValidatorsFromAssemblyContaining<TaskValidator>();
 
     var app = builder.Build();
 
@@ -119,7 +132,15 @@ public partial class Program
       app.UseSwaggerUI();
     }
 
+    app.UseResponseCaching();
     app.UseHttpsRedirection();
+
+    app.UseHsts();
+    app.UseXContentTypeOptions();
+    app.UseReferrerPolicy(opt => opt.NoReferrer());
+    app.UseXXssProtection(opt => opt.EnabledWithBlockMode());
+    app.UseXfo(opt => opt.Deny());
+
 
     app.UseMiddleware<AuditLoggingMiddleware>();
     app.UseMiddleware<ErrorHandlingMiddleware>();

@@ -57,7 +57,6 @@ public class TasksControllerTests : IClassFixture<CustomWebApplicationFactory<Pr
     using var scope = _factory.Services.CreateScope();
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-    // Adicionar um usuário válido ao banco de dados
     var validUser = new User { Id = 1, Username = "Test User", Email = "test@example.com", PasswordHash = "hashed_password" };
     context.Users.Add(validUser);
     await context.SaveChangesAsync();
@@ -67,7 +66,7 @@ public class TasksControllerTests : IClassFixture<CustomWebApplicationFactory<Pr
       Title = "Test Task",
       Description = "Test Description",
       IsCompleted = false,
-      UserId = validUser.Id // Associar ao usuário válido
+      UserId = validUser.Id
     };
 
     // Act
@@ -112,7 +111,6 @@ public class TasksControllerTests : IClassFixture<CustomWebApplicationFactory<Pr
   [Fact]
   public async System.Threading.Tasks.Task GetTasks_ShouldFilterByStatus()
   {
-    // Arrange
     // Arrange
     using var scope = _factory.Services.CreateScope();
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
