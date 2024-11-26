@@ -11,7 +11,6 @@ public class CustomWebApplicationFactory<TStartup> : WebApplicationFactory<TStar
     {
         builder.ConfigureServices(services =>
         {
-            // Remove o banco de dados real
             var descriptor = services.SingleOrDefault(
                 d => d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>));
             if (descriptor != null)
@@ -19,13 +18,11 @@ public class CustomWebApplicationFactory<TStartup> : WebApplicationFactory<TStar
                 services.Remove(descriptor);
             }
 
-            // Adiciona o banco de dados em memória
             services.AddDbContext<ApplicationDbContext>(options =>
             {
                 options.UseInMemoryDatabase("TestDb");
             });
 
-            // Garantir que o banco de dados está limpo
             var sp = services.BuildServiceProvider();
             using (var scope = sp.CreateScope())
             {
@@ -35,6 +32,6 @@ public class CustomWebApplicationFactory<TStartup> : WebApplicationFactory<TStar
             }
         });
 
-        builder.UseEnvironment("Development"); // Define o ambiente como Development
+        builder.UseEnvironment("Development");
     }
 }

@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using TaskManager.DTOs;
 using TaskManager.Models;
+using TaskManager.Services;
 
 namespace TaskManager.Controllers
 {
@@ -42,12 +43,25 @@ namespace TaskManager.Controllers
       return Ok(new { message = "Usuário registrado com sucesso", userId = user.Id });
     }
 
+    /// <summary>
+    /// Authenticate a user with their credentials.
+    /// </summary>
+    /// <remarks>
+    /// The login endpoint is protected against brute force attacks. After 5 failed login attempts, access will be blocked temporarily.
+    /// </remarks>
     [HttpPost("login")]
-    public IActionResult Login([FromBody] UserLoginDto loginDto)
+    public async Task<IActionResult> Login([FromBody] UserLoginDto loginDto, [FromServices] LoginAttemptService loginAttemptService)
     {
+      if (loginAttemptService.IsBlocked(loginDto.Username))
+      {
+        await System.Threading.Tasks.Task.Delay(2000);
+        return Forbid("Too many failed attempts. Please try again later.");
+      }
+
       var user = _context.Users.FirstOrDefault(u => u.Username == loginDto.Username && u.PasswordHash == loginDto.Password);
       if (user == null)
       {
+        loginAttemptService.RecordFailedAttempt(loginDto.Username);
         return Unauthorized("Usuário ou senha inválidos.");
       }
 
@@ -58,7 +72,7 @@ namespace TaskManager.Controllers
       {
         new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
         new Claim(ClaimTypes.Name, user.Username)
-    };
+      };
 
       var token = new JwtSecurityToken(
           claims: claims,
@@ -67,6 +81,8 @@ namespace TaskManager.Controllers
       );
 
       var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+
+      loginAttemptService.ResetAttempts(loginDto.Username);
 
       return Ok(new { token = tokenString });
     }

@@ -1,4 +1,5 @@
 using System.Text;
+using AspNetCoreRateLimit;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -15,6 +16,10 @@ public partial class Program
     var builder = WebApplication.CreateBuilder(args);
 
     // Add services to the container.
+    builder.Services.AddMemoryCache();
+    builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
+    builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
+    builder.Services.AddInMemoryRateLimiting();
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(options =>
     {
@@ -60,6 +65,7 @@ public partial class Program
       options.OperationFilter<TaskManager.Configurations.RestrictMediaTypeFilter>();
     });
 
+    builder.Services.AddSingleton<LoginAttemptService>();
 
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
         options.UseSqlServer(builder.Configuration["ConnectionStrings:DefaultConnection"]));
@@ -94,7 +100,7 @@ public partial class Program
       options.AddSupportedCultures(supportedCultures);
       options.AddSupportedUICultures(supportedCultures);
     });
-
+    builder.Logging.AddConsole();
     Log.Logger = new LoggerConfiguration()
         .WriteTo.Console()
         .WriteTo.File("logs/log-.txt", rollingInterval: RollingInterval.Day)
@@ -120,7 +126,7 @@ public partial class Program
 
     var localizationOptions = app.Services.GetService<IOptions<RequestLocalizationOptions>>().Value;
     app.UseRequestLocalization(localizationOptions);
-
+    app.UseIpRateLimiting();
     app.MapControllers();
 
     app.Run();

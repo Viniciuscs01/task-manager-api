@@ -2,8 +2,6 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
-using Microsoft.AspNetCore.Mvc.Formatters.Xml;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,7 +13,6 @@ public class TasksControllerTests : IClassFixture<CustomWebApplicationFactory<Pr
 {
   private readonly HttpClient _client;
   private readonly string _jwtSecret;
-  private readonly ApplicationDbContext _context;
   private readonly CustomWebApplicationFactory<Program> _factory;
 
   public TasksControllerTests(CustomWebApplicationFactory<Program> factory)
@@ -33,12 +30,6 @@ public class TasksControllerTests : IClassFixture<CustomWebApplicationFactory<Pr
     _client.DefaultRequestHeaders.Authorization =
         new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
     _client.DefaultRequestHeaders.Add("Accept-Language", "en");
-
-    var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-                .UseInMemoryDatabase(databaseName: "TaskManagerTestDb")
-                .Options;
-
-    _context = new ApplicationDbContext(options);
   }
 
   [Fact]
