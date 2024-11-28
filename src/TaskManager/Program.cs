@@ -76,6 +76,10 @@ public partial class Program
     builder.Configuration.AddUserSecrets<Program>();
 
     var secretKey = builder.Configuration["JWT_SECRET"];
+
+    if (string.IsNullOrEmpty(secretKey))
+      throw new InvalidOperationException("JWT_SECRET is not configured.");
+
     var key = Encoding.ASCII.GetBytes(secretKey);
 
     builder.Services.AddAuthentication(options =>
