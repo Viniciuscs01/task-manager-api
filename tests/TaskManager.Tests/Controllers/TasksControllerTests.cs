@@ -20,11 +20,8 @@ public class TasksControllerTests : IClassFixture<CustomWebApplicationFactory<Pr
     _factory = factory;
     _client = factory.CreateClient();
 
-    var config = new ConfigurationBuilder()
-        .AddUserSecrets<Program>()
-        .Build();
+    _jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET");
 
-    _jwtSecret = config["JWT_SECRET"];
     Console.WriteLine("JWT SECRET: " + _jwtSecret);
     var token = AuthHelper.GenerateJwtToken(_jwtSecret, "testuser");
     _client.DefaultRequestHeaders.Authorization =

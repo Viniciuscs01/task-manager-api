@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using TaskManager.Models;
@@ -30,6 +31,11 @@ public class CustomWebApplicationFactory<TStartup> : WebApplicationFactory<TStar
                 db.Database.EnsureDeleted();
                 db.Database.EnsureCreated();
             }
+        });
+
+        builder.ConfigureAppConfiguration((context, config) =>
+        {
+            config.AddEnvironmentVariables();
         });
 
         builder.UseEnvironment("Development");
