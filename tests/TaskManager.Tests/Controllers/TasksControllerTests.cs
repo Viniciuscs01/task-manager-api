@@ -25,7 +25,7 @@ public class TasksControllerTests : IClassFixture<CustomWebApplicationFactory<Pr
         .Build();
 
     _jwtSecret = config["JWT_SECRET"];
-
+    Console.WriteLine("JWT SECRET: " + _jwtSecret);
     var token = AuthHelper.GenerateJwtToken(_jwtSecret, "testuser");
     _client.DefaultRequestHeaders.Authorization =
         new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
