@@ -33,6 +33,9 @@ jobs:
 
       # Executar testes
       - name: Run tests
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          ConnectionStrings:DefaultConnection: ${{ secrets.CONNECTIONSTRINGS_DEFAULTCONNECTION }}
         run: dotnet test ./tests/TaskManager.Tests/TaskManager.Tests.csproj --configuration Release --no-build --verbosity normal
 
         # Deploy para Azure App Service
