@@ -13,35 +13,32 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout do código
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Configurar .NET
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: 8.0
 
-      # Restaurar dependências
       - name: Restore dependencies
         run: dotnet restore
 
-      # Build do projeto
       - name: Build the project
         run: dotnet build --no-restore --configuration Release
 
-      # Executar testes
       - name: Run tests
         env:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: dotnet test ./tests/TaskManager.Tests/TaskManager.Tests.csproj --configuration Release --no-build --verbosity normal
+      
+      - name: Publish the project
+        run: dotnet publish ./src/TaskManager/TaskManager.csproj --configuration Release --output ./src/TaskManager/bin/Release/net8.0/publish
 
-        # Deploy para Azure App Service
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
-          app-name: "task-manager-api" # Nome do App Service no Azure
-          slot-name: "production" # (opcional) Slot de produção
+          app-name: "task-manager-api"
+          slot-name: "production"
           publish-profile: ${{ secrets.AZURE_CREDENTIALS }}
           package: ./src/TaskManager/bin/Release/net8.0/publish
