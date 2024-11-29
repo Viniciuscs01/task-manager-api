@@ -2,8 +2,6 @@
 
 Task Manager API is a robust system designed to manage tasks with advanced features like authentication, authorization, validation, and more. The API is built with scalability, security, and maintainability in mind, using best practices and modern technologies.
 
----
-
 ## **Project Overview**
 
 The Task Manager API allows users to:
@@ -14,8 +12,6 @@ The Task Manager API allows users to:
 - Localize responses into multiple languages (English and Portuguese).
 
 This API is suitable for learning modern development practices and can be integrated with various frontend frameworks.
-
----
 
 ## **Platform and Technologies**
 
@@ -33,8 +29,11 @@ This API is suitable for learning modern development practices and can be integr
 - **Serilog**: For logging and diagnostics.
 - **Application Insights**: For monitoring and metrics.
 - **Rate Limiting**: To prevent abuse and brute force attacks.
-
----
+- **Localization**: For multi-language support.
+- **GitHub Actions**: For CI/CD pipeline.
+- **xUnit**: For automated testing.
+- **FluentAssertions**: For fluent assertions in tests.
+- **Polly**: For resilience and transient fault handling.
 
 ## **Features**
 
@@ -46,25 +45,17 @@ This API is suitable for learning modern development practices and can be integr
 - **Security**: Protection against brute force attacks, XSS, and SQL injection.
 - **Automated Deployment**: CI/CD pipeline with GitHub Actions.
 
----
-
-### **Technical Details**
-#### **Architecture**
+## **Technical Details**
+### **Architecture**
 - Clean Architecture: Separation of concerns with clear boundaries between layers.
 - SOLID Principles: For maintainable and extendable code.
 - Middleware: Handles logging, error management, and localization centrally.
 
-#### **Best Practices**
+### **Best Practices**
 - Centralized error handling with custom middleware.
 - Validations using FluentValidation for flexibility and reusability.
 - Security measures, including rate limiting and headers to prevent XSS.
 - Automated tests for controllers and middlewares.
 
-### **License**
+## **License**
 This project is licensed under the MIT License.
-
-### **Contact**
-For questions or issues, feel free to reach out:
-- Name: Vinícius Carvalho
-- Email: [vinicius.cs01@gmail.com](mailto:vinicius.cs01@gmail.com)
-- GitHub: [Viniciuscs01](https://github.com/Viniciuscs01)
